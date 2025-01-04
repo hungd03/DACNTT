@@ -6,6 +6,8 @@ const authRouter = require("./routes/authRoute");
 const userRouter = require("./routes/userRoute");
 const productRouter = require("./routes/productRoute");
 const categoryRouter = require("./routes/categoryRoute");
+const wishlistRouter = require("./routes/wishlistRoute");
+const cartRouter = require("./routes/cartRoute");
 
 const app = express();
 
@@ -17,6 +19,8 @@ app.use("/api/auth", authRouter);
 app.use("/api/users", verifyToken, userRouter);
 app.use("/api/products", productRouter);
 app.use("/api/categories", categoryRouter);
+app.use("/api/wishlist", verifyToken, wishlistRouter);
+app.use("/api/carts", verifyToken, cartRouter);
 
 const connectDB = async () => {
   try {
