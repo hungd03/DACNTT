@@ -121,6 +121,171 @@ class ProductController {
       res.status(500).json({ message: error.message });
     }
   }
+
+  async updateProductStock(req, res) {
+    try {
+      const { variantSku, quantity } = req.body;
+      const product = await ProductService.updateProductStock(
+        req.params.id,
+        variantSku,
+        quantity
+      );
+      if (!product) {
+        return res
+          .status(404)
+          .json({ message: "Product or variant not found" });
+      }
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async getVariants(req, res) {
+    try {
+      const variants = await ProductService.getVariants(req.params.productId);
+      res.json(variants);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async getVariantById(req, res) {
+    try {
+      const variant = await ProductService.getVariantById(
+        req.params.productId,
+        req.params.variantId
+      );
+      if (!variant) {
+        return res.status(404).json({ message: "Variant not found" });
+      }
+      res.json(variant);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async addVariant(req, res) {
+    console.log(req.body);
+    try {
+      const product = await ProductService.addVariant(
+        req.params.productId,
+        req.body
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async updateVariant(req, res) {
+    try {
+      const product = await ProductService.updateVariant(
+        req.params.productId,
+        req.params.variantId,
+        req.body
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async deleteVariant(req, res) {
+    try {
+      const product = await ProductService.deleteVariant(
+        req.params.productId,
+        req.params.variantId
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async updateDiscount(req, res) {
+    try {
+      const product = await ProductService.updateProductDiscount(
+        req.params.productId,
+        req.body
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async removeDiscount(req, res) {
+    try {
+      const product = await ProductService.removeProductDiscount(
+        req.params.productId
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async getVideos(req, res) {
+    try {
+      const videos = await ProductService.getVideos(req.params.productId);
+      res.json(videos);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async getVideoById(req, res) {
+    try {
+      const video = await ProductService.getVideoById(
+        req.params.productId,
+        req.params.videoId
+      );
+      if (!video) {
+        return res.status(404).json({ message: "Video not found" });
+      }
+      res.json(video);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async addVideo(req, res) {
+    try {
+      const product = await ProductService.addProductVideo(
+        req.params.productId,
+        req.body
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async updateVideo(req, res) {
+    try {
+      const product = await ProductService.updateProductVideo(
+        req.params.productId,
+        req.params.videoId,
+        req.body
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  async deleteVideo(req, res) {
+    try {
+      const product = await ProductService.deleteProductVideo(
+        req.params.productId,
+        req.params.videoId
+      );
+      res.json(product);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
 }
 
 module.exports = new ProductController();

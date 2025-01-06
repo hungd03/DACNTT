@@ -281,5 +281,171 @@ class ProductService {
       throw new Error(`Search error: ${error.message}`);
     }
   }
+
+  async updateProductStock(id, variantSku, quantity) {
+    return await Product.findOneAndUpdate(
+      { _id: id, "variants.sku": variantSku },
+      { $inc: { "variants.$.stock": quantity } },
+      { new: true }
+    );
+  }
+
+  async getVariants(productId) {
+    try {
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+      return product.variants;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getVariantById(productId, variantId) {
+    try {
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+      const variant = product.variants.id(variantId);
+      if (!variant) {
+        throw new Error("Variant not found");
+      }
+      return variant;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async addVariant(productId, variantData) {
+    try {
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      product.variants.push(variantData);
+      return await product.save();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateVariant(productId, variantId, updateData) {
+    try {
+      updateData._id = variantId;
+      return await Product.findOneAndUpdate(
+        { _id: productId, "variants._id": variantId },
+        { $set: { "variants.$": updateData } },
+        { new: true }
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deleteVariant(productId, variantId) {
+    try {
+      return await Product.findByIdAndUpdate(
+        productId,
+        { $pull: { variants: { _id: variantId } } },
+        { new: true }
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateProductDiscount(productId, discountData) {
+    try {
+      return await Product.findByIdAndUpdate(
+        productId,
+        { discount: discountData },
+        { new: true }
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async removeProductDiscount(productId) {
+    try {
+      return await Product.findByIdAndUpdate(
+        productId,
+        { $unset: { discount: 1 } },
+        { new: true }
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getVideos(productId) {
+    try {
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+      return product.videos;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getVideoById(productId, videoId) {
+    try {
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+      const video = product.videos.id(videoId);
+      if (!video) {
+        throw new Error("Video not found");
+      }
+      return video;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async addProductVideo(productId, videoData) {
+    try {
+      const product = await Product.findById(productId);
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      product.videos.push(videoData);
+      return await product.save();
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateProductVideo(productId, videoId, updateData) {
+    try {
+      updateData._id = videoId;
+      return await Product.findOneAndUpdate(
+        { _id: productId, "videos._id": videoId },
+        { $set: { "videos.$": updateData } },
+        { new: true }
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async deleteProductVideo(productId, videoId) {
+    try {
+      return await Product.findByIdAndUpdate(
+        productId,
+        { $pull: { videos: { _id: videoId } } },
+        { new: true }
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 module.exports = new ProductService();

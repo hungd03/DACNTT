@@ -18,4 +18,36 @@ router.get("/:id", ProductController.getProductById);
 router.post("/", verifyToken, ProductController.createProduct);
 router.put("/:id", verifyToken, ProductController.updateProduct);
 router.delete("/:id", verifyToken, ProductController.deleteProduct);
+router.patch("/:id/stock", verifyToken, ProductController.updateProductStock);
+
+router.post("/:productId/variants", verifyToken, ProductController.addVariant);
+router.put(
+  "/:productId/variants/:variantId",
+  verifyToken,
+  ProductController.updateVariant
+);
+router.delete(
+  "/:productId/variants/:variantId",
+  verifyToken,
+  ProductController.deleteVariant
+);
+
+router.put(
+  "/:productId/discount",
+  verifyToken,
+  ProductController.updateDiscount
+);
+
+router.post("/:productId/videos", verifyToken, ProductController.addVideo);
+router.put(
+  "/:productId/videos/:videoId",
+  verifyToken,
+  ProductController.updateVideo
+);
+router.delete(
+  "/:productId/videos/:videoId",
+  verifyToken,
+  ProductController.deleteVideo
+);
+
 module.exports = router;
