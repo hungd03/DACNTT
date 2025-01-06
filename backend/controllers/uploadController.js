@@ -87,6 +87,73 @@ const processCategoryImage = async (req, res, next) => {
   }
 };
 
+const processProductImages = async (req, res, next) => {
+  try {
+    const product = req.params.id
+      ? await Product.findById(req.params.id)
+      : null;
+
+    const imageTypes = [
+      {
+        fieldName: "thumbnailImage",
+        existingData: product?.thumbnailImage,
+        isSingle: true,
+      },
+      {
+        fieldName: "images",
+        existingData: product?.images,
+        isSingle: false,
+      },
+    ];
+
+    for (const imageType of imageTypes) {
+      // Sử dụng handleProductImageUpload thay vì handleImageUpload
+      const imageData = await handleProductImageUpload({
+        req,
+        ...imageType,
+      });
+
+      if (imageData) {
+        req.body = {
+          ...req.body,
+          ...imageData,
+        };
+      }
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+const processVariantImage = async (req, res, next) => {
+  try {
+    const product = await Product.findById(req.params.productId);
+    if (!product) throw new Error("Product not found");
+    console.log("Before Process", req.body);
+    const variant = product.variants.id(req.params.variantId);
+
+    const imageData = await handleImageUpload({
+      req,
+      fieldName: "variantImage",
+      existingData: variant?.variantImage,
+      isSingle: true,
+    });
+
+    if (imageData) {
+      req.body = {
+        ...req.body,
+        ...imageData,
+      };
+    }
+    console.log("After Process", req.body);
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
@@ -113,5 +180,7 @@ const handleMulterError = (err, req, res, next) => {
 
 module.exports = {
   processCategoryImage,
+  processProductImages,
+  processVariantImage,
   handleMulterError,
 };
