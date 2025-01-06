@@ -1,5 +1,6 @@
 const multer = require("multer");
 const uploadService = require("../services/uploadService");
+const Product = require("../models/Product");
 const Category = require("../models/Category");
 
 // Generic handler for processing image uploads
@@ -61,6 +62,29 @@ const handleImageUpload = async (options) => {
   };
 };
 
+const handleProductImageUpload = async (options) => {
+  const { req, fieldName, existingData, isSingle = true } = options;
+
+  if (req.files?.[fieldName]) {
+    const files = isSingle ? [req.files[fieldName][0]] : req.files[fieldName];
+
+    const formatImage = (file) => ({
+      url: file.path,
+      publicId: file.filename,
+    });
+
+    const newImageData = isSingle
+      ? formatImage(files[0])
+      : files.map(formatImage);
+
+    return {
+      [fieldName]: newImageData,
+    };
+  }
+
+  return null;
+};
+
 const processCategoryImage = async (req, res, next) => {
   try {
     const category = req.params.id
@@ -107,7 +131,6 @@ const processProductImages = async (req, res, next) => {
     ];
 
     for (const imageType of imageTypes) {
-      // Sử dụng handleProductImageUpload thay vì handleImageUpload
       const imageData = await handleProductImageUpload({
         req,
         ...imageType,
@@ -154,6 +177,88 @@ const processVariantImage = async (req, res, next) => {
   }
 };
 
+const deleteImages = async (req, res, next) => {
+  try {
+    const path = req.originalUrl.toLowerCase();
+    let model;
+
+    if (path.includes("/products")) {
+      // Check if it's a SEO delete request
+      if (path.includes("/seo")) {
+        model = await Product.findById(req.params.productId);
+        if (!model) throw new Error("Product not found");
+
+        if (model.seo?.seoImage?.publicId) {
+          await uploadService.deleteImage(model.seo.seoImage.publicId);
+        }
+      }
+      // Check if it's a variant delete request
+      else if (path.includes("/variants")) {
+        model = await Product.findById(req.params.productId);
+        if (!model) throw new Error("Product not found");
+
+        const variant = model.variants.id(req.params.variantId);
+        if (!variant) throw new Error("Variant not found");
+
+        if (variant.variantImage?.publicId) {
+          await uploadService.deleteImage(variant.variantImage.publicId);
+        }
+      }
+      // Handle full product delete
+      else {
+        model = await Product.findById(req.params.id);
+        if (!model) throw new Error("Product not found");
+
+        const deletePromises = [];
+
+        // Delete thumbnail image
+        if (model.thumbnailImage?.publicId) {
+          deletePromises.push(
+            uploadService.deleteImage(model.thumbnailImage.publicId)
+          );
+        }
+
+        // Delete gallery images
+        if (model.images?.length > 0) {
+          const galleryIds = model.images.map((img) => img.publicId);
+          deletePromises.push(uploadService.deleteMultipleImages(galleryIds));
+        }
+
+        // Delete SEO image
+        if (model.seo?.seoImage?.publicId) {
+          deletePromises.push(
+            uploadService.deleteImage(model.seo.seoImage.publicId)
+          );
+        }
+
+        // Delete all variant images
+        if (model.variants?.length > 0) {
+          const variantIds = model.variants
+            .filter((variant) => variant.variantImage?.publicId)
+            .map((variant) => variant.variantImage.publicId);
+
+          if (variantIds.length > 0) {
+            deletePromises.push(uploadService.deleteMultipleImages(variantIds));
+          }
+        }
+
+        await Promise.all(deletePromises);
+      }
+    } else if (path.includes("/users")) {
+      model = await User.findById(req.params.id || req.user.id);
+      if (!model) throw new Error("User not found");
+
+      if (model.avatar?.publicId) {
+        await uploadService.deleteImage(model.avatar.publicId);
+      }
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 const handleMulterError = (err, req, res, next) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
@@ -182,5 +287,6 @@ module.exports = {
   processCategoryImage,
   processProductImages,
   processVariantImage,
+  deleteImages,
   handleMulterError,
 };

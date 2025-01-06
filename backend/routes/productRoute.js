@@ -6,7 +6,6 @@ const { upload } = require("../configs/uploadConfig");
 const {
   processProductImages,
   processVariantImage,
-  processSEOImage,
   deleteImages,
   handleMulterError,
 } = require("../controllers/uploadController");
