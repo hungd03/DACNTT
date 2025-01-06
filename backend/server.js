@@ -8,6 +8,7 @@ const productRouter = require("./routes/productRoute");
 const categoryRouter = require("./routes/categoryRoute");
 const wishlistRouter = require("./routes/wishlistRoute");
 const cartRouter = require("./routes/cartRoute");
+const orderRouter = require("./routes/orderRoute");
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/api/products", productRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/wishlist", verifyToken, wishlistRouter);
 app.use("/api/carts", verifyToken, cartRouter);
+app.use("/api/orders", orderRouter);
 
 const connectDB = async () => {
   try {
