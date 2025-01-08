@@ -1,101 +1,138 @@
-import Image from "next/image";
+"use client";
+import Carousel from "@/components/Home/Carousel";
+import CategoryCarousel from "@/components/Home/CategoryCarousel";
+import ProductCards from "@/components/ProductCards";
+import PromotionCards from "@/components/Home/PromotionCards";
+import { FaHeadset, FaHeart, FaLock, FaShippingFast } from "react-icons/fa";
+import { axiosInstance } from "@/lib/axiosInstance";
+import toast from "react-hot-toast";
+import { ChevronRight } from "lucide-react";
+import {
+  useFlashSale,
+  useProducts,
+} from "@/features/products/hooks/useProduct";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const { data: flashSaleData, isLoading: isFlashSaleLoading } =
+    useFlashSale(5);
+  const { data: featuredData, isLoading: isFeaturedLoading } = useProducts({
+    page: 1,
+    limit: 8,
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const addToWishlist = async (id: string) => {
+    await axiosInstance.post("/wishlist", { product: id }).then((data) => {
+      if (data?.data?.status) {
+        toast.success("Product Added To Wishlist");
+      } else {
+        toast.error("Failed to add product to wishlist");
+      }
+    });
+  };
+
+  const services = [
+    {
+      icon: <FaHeadset size={30} className="text-center text-[#f23e14]" />,
+      title: "Professional Service",
+      description: "Efficient customer support from passionate team",
+    },
+    {
+      icon: <FaLock size={30} className="text-center text-[#f23e14]" />,
+      title: "Secure Payment",
+      description: "Different secure payment methods",
+    },
+    {
+      icon: <FaShippingFast size={30} className="text-center text-[#f23e14]" />,
+      title: "Fast Delivery",
+      description: "Fast and convenient door to door delivery",
+    },
+    {
+      icon: <FaHeart size={30} className="text-center text-[#f23e14]" />,
+      title: "Quality & Savings",
+      description: "Comprehensive quality control and affordable prices",
+    },
+  ];
+
+  return (
+    <div className="mb-8 ">
+      <Carousel />
+      <CategoryCarousel />
+      <PromotionCards />
+
+      {/* Flash Sales Section */}
+      <div className="xl:container px-2 xl:px-4 mt-10 mx-auto ">
+        <div className="bg-red-50 py-8">
+          <div className="mx-auto px-4">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center">
+                <h2 className="text-xl font-bold text-red-600">FLASH SALE</h2>
+              </div>
+              <a
+                href="/offers"
+                className="text-red-600 flex items-center hover:text-red-700 transition-colors"
+              >
+                Xem tất cả <ChevronRight size={20} />
+              </a>
+            </div>
+
+            {isFlashSaleLoading ? (
+              <div>Loading...</div>
+            ) : (
+              <ProductCards
+                data={flashSaleData || []}
+                isFlashSale={true}
+                wishlistClicked={addToWishlist}
+              />
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      {/* Featured Phones Section */}
+      <div className="xl:container px-2 xl:px-4 mt-10 mx-auto">
+        <div className="py-8">
+          <div className="container mx-auto px-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">FEATURED PHONES</h2>
+
+              <a
+                href="/all-products"
+                className="text-gray-700 flex items-center hover:text-gray-900 transition-colors"
+              >
+                Xem tất cả <ChevronRight size={20} />
+              </a>
+            </div>
+            {isFeaturedLoading ? (
+              <div>Loading...</div>
+            ) : (
+              <ProductCards
+                data={featuredData?.products || []}
+                wishlistClicked={addToWishlist}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Services Sections */}
+      <div className="mx-auto xl:container px-2 xl:px-4 mt-10">
+        <div className="bg-gray-50 py-8">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {services.map((service, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col items-center text-center space-y-3 p-4"
+                >
+                  <div className="mb-2">{service.icon}</div>
+                  <span className="font-medium">{service.title}</span>
+                  <p className="text-sm text-gray-600">{service.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
