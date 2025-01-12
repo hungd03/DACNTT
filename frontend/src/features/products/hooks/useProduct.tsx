@@ -432,3 +432,232 @@ export const useDeleteProduct = () => {
 
   return { deleteProduct, isLoading, error, success };
 };
+
+export const useProductVariants = (productId: string) => {
+  const [data, setData] = useState<ProductDetail["variants"]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchVariants = async () => {
+    try {
+      setIsLoading(true);
+      const response = await productApi.getVariants(productId);
+      setData(response);
+      setError(null);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch variants";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVariants();
+  }, [productId]);
+
+  const addVariant = async (variantData: FormData) => {
+    const loadingToast = toast.loading("Adding variant...");
+    try {
+      setIsLoading(true);
+      const updatedProduct = await productApi.addVariant(
+        productId,
+        variantData
+      );
+      setData(updatedProduct.variants);
+      setError(null);
+      toast.success("Variant added successfully!", { id: loadingToast });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to add variant";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage, { id: loadingToast });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateVariant = async (variantId: string, variantData: FormData) => {
+    const loadingToast = toast.loading("Updating variant...");
+    try {
+      setIsLoading(true);
+      const updatedProduct = await productApi.updateVariant(
+        productId,
+        variantId,
+        variantData
+      );
+      setData(updatedProduct.variants);
+      setError(null);
+      toast.success("Variant updated successfully!", { id: loadingToast });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update variant";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage, { id: loadingToast });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteVariant = async (variantId: string) => {
+    const loadingToast = toast.loading("Deleting variant...");
+    try {
+      setIsLoading(true);
+      const updatedProduct = await productApi.deleteVariant(
+        productId,
+        variantId
+      );
+      setData(updatedProduct.variants);
+      setError(null);
+      toast.success("Variant deleted successfully!", { id: loadingToast });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete variant";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage, { id: loadingToast });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    variants: data,
+    isLoading,
+    error,
+    refreshVariants: fetchVariants,
+    addVariant,
+    updateVariant,
+    deleteVariant,
+  };
+};
+
+export const useProductDiscount = (productId: string) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const updateDiscount = async (discountData: ProductDetail["discount"]) => {
+    const loadingToast = toast.loading("Updating discount...");
+    try {
+      setIsLoading(true);
+      const updatedProduct = await productApi.updateDiscount(
+        productId,
+        discountData
+      );
+      toast.success("Discount updated successfully!", { id: loadingToast });
+      return updatedProduct;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update discount";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage, { id: loadingToast });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    isLoading,
+    error,
+    updateDiscount,
+  };
+};
+
+// Product Video Hooks
+export const useProductVideos = (productId: string) => {
+  const [data, setData] = useState<ProductDetail["videos"]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const fetchVideos = async () => {
+    try {
+      setIsLoading(true);
+      const videos = await productApi.getVideos(productId);
+      setData(videos);
+      setError(null);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch videos";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchVideos();
+  }, [productId]);
+
+  const addVideo = async (videoData: Omit<ProductVideo, "_id">) => {
+    const loadingToast = toast.loading("Adding video...");
+    try {
+      setIsLoading(true);
+      await productApi.addVideo(productId, videoData);
+      await fetchVideos();
+      toast.success("Video added successfully!", { id: loadingToast });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to add video";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage, { id: loadingToast });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateVideo = async (
+    videoId: string,
+    videoData: Omit<ProductVideo, "_id">
+  ) => {
+    const loadingToast = toast.loading("Updating video...");
+    try {
+      setIsLoading(true);
+      await productApi.updateVideo(productId, videoId, videoData);
+      await fetchVideos();
+      toast.success("Video updated successfully!", { id: loadingToast });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update video";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage, { id: loadingToast });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteVideo = async (videoId: string) => {
+    const loadingToast = toast.loading("Deleting video...");
+    try {
+      setIsLoading(true);
+      await productApi.deleteVideo(productId, videoId);
+      await fetchVideos();
+      toast.success("Video deleted successfully!", { id: loadingToast });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to delete video";
+      setError(new Error(errorMessage));
+      toast.error(errorMessage, { id: loadingToast });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    videos: data,
+    isLoading,
+    error,
+    refreshVideos: fetchVideos,
+    addVideo,
+    updateVideo,
+    deleteVideo,
+  };
+};
