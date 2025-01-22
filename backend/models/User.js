@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
+const constants = require("../constants");
 const slugGenerator = require("mongoose-slug-updater");
 
 const addressSchema = new mongoose.Schema({
@@ -23,27 +23,40 @@ const userSchema = new mongoose.Schema(
       url: { type: String },
       publicId: { type: String },
     },
+    status: {
+      type: String,
+      enum: Object.values(constants.USER.STATUS),
+      default: constants.USER.STATUS.ACTIVE,
+    },
     googleId: { type: String },
-    role: { type: String, enum: ["customer", "admin"], default: "customer" },
+    role: {
+      type: String,
+      enum: Object.values(constants.USER.ROLE),
+      default: constants.USER.ROLE.CUSTOMER,
+    },
     password: { type: String, required: true },
-    resetPasswordToken: { type: String },
-    resetPasswordExpires: { type: Date },
     shippingAddress: [addressSchema],
-    billingAddress: [addressSchema],
     orderHistory: [
       {
         orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Orders" },
         date: { type: Date, default: Date.now },
         status: {
           type: String,
-          enum: ["pending", "shipped", "delivered", "cancelled"],
-          default: "pending",
+          enum: Object.values(constants.ORDER.STATUS),
+          default: "Pending",
         },
         totalAmount: { type: Number, required: true },
+        couponUsage: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Coupon",
+          },
+          { _id: false },
+        ],
       },
     ],
   },
-  { timestamps: true }
+  { timestamps: true, versionKey: false }
 );
 
 userSchema.plugin(slugGenerator);
