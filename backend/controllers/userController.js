@@ -1,89 +1,93 @@
-const User = require("../models/User");
+const UserService = require("../services/userService");
 
-// Get all users
-exports.getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find().select("-password");
-    res.json({ status: true, users: users });
-  } catch (err) {
-    console.log(err.message);
-    res.status(500).json({ status: false, msg: "Internal server error" });
-  }
-};
-
-// Get user by id
-exports.getUserById = async (req, res) => {
-  if (!req.user || !req.user.userId) {
-    return res.status(200).json({
-      status: true,
-      user: null,
-      msg: "User not logged in",
-    });
-  }
-
-  const id = req.user?.userId;
-  try {
-    const user = await User.findById(id).select("-password");
-    if (!user)
-      return res.status(400).json({ status: false, msg: "User Not Found!" });
-    res.status(200).json({ status: true, user });
-  } catch (err) {
-    console.log(err.message);
-    res.status(500).json({ status: false, msg: "Internal server error" });
-  }
-};
-
-// Change password: Replace old password with the new one
-exports.changePassword = async (req, res) => {
-  const { oldPassword, newPassword, confirmPassword } = req.body;
-  const userId = req.user.userId;
-
-  try {
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ status: false, msg: "User Not Found" });
+class UserController {
+  async getUsers(req, res) {
+    try {
+      const users = await UserService.getUsers(req.query);
+      res.json({ status: true, users });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
     }
-
-    const isMatch = await user.comparePassword(oldPassword);
-    if (!isMatch) {
-      return res
-        .status(400)
-        .json({ status: false, msg: "Old password is incorrect" });
-    }
-
-    if (newPassword !== confirmPassword) {
-      return res.status(400).json({
-        status: false,
-        msg: "New password and comfirm password do not match",
-      });
-    }
-
-    user.password = newPassword;
-    await user.save();
-    res
-      .status(200)
-      .json({ status: true, msg: "Password changed successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      status: false,
-      msg: "Internal Server Error",
-      error: err,
-    });
   }
-};
 
-// Delete a user : Admin only
-exports.deleteUser = async (req, res) => {
-  const id = req.params.id;
-  try {
-    const user = await User.findByIdAndDelete(id);
-    if (!user) {
-      return res.status(400).json({ status: false, msg: "User Not Found" });
+  async getUser(req, res) {
+    try {
+      if (!req.user || !req.user.userId) {
+        return res.status(200).json({
+          status: true,
+          user: null,
+          msg: "User not logged in",
+        });
+      }
+
+      const userId = req.user?.userId;
+      const user = await UserService.getUser(userId);
+      res.json({ status: true, user });
+    } catch (error) {
+      res.status(404).json({ message: error.message });
     }
-    res.status(200).json({ status: true, msg: "User Deleted Successfully!" });
-  } catch (err) {
-    console.log(err.message);
-    res.status(500).json({ status: false, msg: "Internal server error" });
   }
-};
+
+  async createUser(req, res) {
+    try {
+      const user = await UserService.createUser(req.body);
+      res.status(201).json({ status: true, user });
+    } catch (error) {
+      res.status(400).json({ message: error.message });
+    }
+  }
+
+  async updateUser(req, res) {
+    const userId = req.params.id;
+    try {
+      const user = await UserService.updateUser(userId, req.body);
+      res.json({ status: true, user });
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  }
+
+  async deleteUser(req, res) {
+    const userId = req.params.id;
+    try {
+      await UserService.deleteUser(userId);
+      res.json({ status: true, message: "User deleted statusfully" });
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  }
+
+  async changePassword(req, res) {
+    const userId = req.user.userId;
+    try {
+      await UserService.changePassword(userId, req.body);
+      res.json({ status: true, message: "Password changed statusfully" });
+    } catch (error) {
+      res.status(400).json({ status: false, message: error.message });
+    }
+  }
+
+  async addAddress(req, res) {
+    const userId = req.user.userId;
+    const { address } = req.body;
+    try {
+      const user = await UserService.addAddress(userId, address);
+      res.json({ status: true, message: "Address Added Successfully", user });
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  }
+
+  async deleteAddress(req, res) {
+    const userId = req.user.userId;
+    const { addressId } = req.params;
+    try {
+      const user = await UserService.deleteAddress(userId, addressId);
+      res.json({ status: true, message: "Address Added Successfully", user });
+    } catch (error) {
+      res.status(404).json({ message: error.message });
+    }
+  }
+}
+
+module.exports = new UserController();
