@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ITShop - OTP Email</title>
+</head>
+
+<body>
+  <div style="font-family: Helvetica,Arial,sans-serif;min-width:1000px;overflow:auto;line-height:2">
+    <div style="margin:50px auto;width:70%;padding:20px 0">
+      <div style="border-bottom:1px solid #eee">
+        <a href="http://localhost:3000" style="font-size:2px;color: #00466a;text-decoration:none;font-weight:600"><img
+            src="https://res.cloudinary.com/do0eznegz/image/upload/v1733223342/logo_lxpor5.png" alt="logo"
+            style="width: 100px; height: auto;"></a>
+      </div>
+      <p style="font-size:1.1em">Hi, <%= user.fullName %>
+      </p>
+      <p>Thank you for shopping on ITShop. Use the following OTP to complete your <b>Reset Password</b> procedures. OTP
+        is
+        valid
+        for 5
+        minutes</p>
+      <h2 style="background: yellow;margin: 0 auto;width: max-content;padding: 0 10px;color: red;border-radius: 4px;">
+        <%= otp %>
+      </h2>
+      <p style="font-size:0.9em;">Regards,<br />ITShop</p>
+      <hr style="border:none;border-top:1px solid #eee" />
+      <div style="float:right;padding:8px 0;color:#aaa;font-size:0.8em;line-height:1;font-weight:300">
+        <p>ITShop</p>
+        <p>TDTU University</p>
+        <p>HCM City</p>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
