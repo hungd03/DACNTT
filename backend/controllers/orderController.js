@@ -213,11 +213,41 @@ exports.createOrder = async (req, res) => {
     const formattedOrderData = formatOrderDataForEmail(order);
     await mailService.sendEmailCreateOrder(formattedOrderData);
 
-    res.status(201).json({
-      status: true,
-      msg: "Order created successfully",
-      data: order,
-    });
+    if (order) {
+      let paymentUrl = "";
+      if (req.body.paymentMethod === constants.ORDER.PAYMENT_METHOD.VNPAY) {
+        paymentUrl = await VnpayService.createPaymentUrl(
+          req.ipv4,
+          order._id.toString(),
+          order.total
+        );
+      }
+
+      if (req.body.paymentMethod === constants.ORDER.PAYMENT_METHOD.MOMO) {
+        // Momo Payment Test giới hạn total <= 50.000.000đ
+
+        // if (order.total > 50000000) {
+        //   return res.status(400).json({
+        //     status: false,
+        //     msg: "Order amount exceeds MOMO payment limit (50,000,000 VND). Please choose another payment method or split your order.",
+        //   });
+        // }
+        paymentUrl = await MomoService.createPaymentUrl(
+          order._id.toString(),
+          order.total
+        );
+      }
+
+      const formattedOrderData = formatOrderDataForEmail(order);
+      await mailService.sendEmailCreateOrder(formattedOrderData);
+
+      res.status(201).json({
+        status: true,
+        msg: "Order created successfully",
+        data: order,
+        url: paymentUrl,
+      });
+    }
   } catch (err) {
     res.status(500).json({ status: false, msg: err.message });
   }
