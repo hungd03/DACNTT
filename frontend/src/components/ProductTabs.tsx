@@ -1,17 +1,19 @@
 import React, { useState } from "react";
 import { FaInfoCircle, FaStar, FaVideo } from "react-icons/fa";
 import ProductDescription from "./Dashboard/Product/ProductDescription";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Comments } from "@/components/Comments";
-import { useAuth } from "@/features/auth/hooks/useAuth";
+import Review from "./Reviews/Review";
+import { ProductDetail } from "@/types/product";
 
-const ProductTabs = ({ data }) => {
-  const { isLoggedIn, user } = useAuth();
+interface ProductTabsProps {
+  data: ProductDetail;
+}
+
+const ProductTabs = ({ data }: ProductTabsProps) => {
   const [activeTab, setActiveTab] = useState<string>("Details");
   const handleTabClicked = (tab: string) => {
     setActiveTab(tab);
   };
-  const transformYouTubeLink = (url) => {
+  const transformYouTubeLink = (url: string) => {
     const videoId = url.split("v=")[1]?.split("&")[0];
     return `https://www.youtube.com/embed/${videoId}`;
   };
@@ -49,20 +51,17 @@ const ProductTabs = ({ data }) => {
       <div className="tab-content border p-6 rounded-b-3xl">
         {activeTab === "Details" && (
           <div>
-            <h2 className="text-xl md:text-3xl font-bold mb-4">
-              Product Details
-            </h2>
             <ProductDescription htmlContent={data?.description} />
           </div>
         )}
         {activeTab === "Videos" && (
           <div>
-            <h2 className="text-xl md:text-3xl font-bold mb-4">
+            <h2 className="text-xl md:text-2xl font-bold mb-4">
               Product Videos
             </h2>
             {data?.videos?.length ? (
               <div className="grid md:grid-cols-2">
-                {data?.videos?.map((item: any, index) => {
+                {data?.videos?.map((item: any, index: number) => {
                   const videoEmbedUrl = transformYouTubeLink(item?.videoLink);
                   return (
                     <div key={index}>
@@ -85,17 +84,7 @@ const ProductTabs = ({ data }) => {
         )}
 
         {activeTab === "Reviews" && (
-          <div>
-            {isLoggedIn && user ? (
-              <Comments productId={data._id} userId={user._id} />
-            ) : (
-              <Alert>
-                <AlertDescription>
-                  Please sign in to view and post reviews.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
+          <Review productId={data?._id} product={data} limit={5} />
         )}
       </div>
     </div>
