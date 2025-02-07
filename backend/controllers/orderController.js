@@ -10,20 +10,7 @@ const VnpayService = require("../services/vnpayService");
 const MomoService = require("../services/momoService");
 const mailService = require("../services/mailService");
 const { formatOrderDataForEmail } = require("../utils/orderFormatter");
-
-const generateOrderId = async () => {
-  const currentDate = new Date();
-
-  const dateId =
-    "#" + currentDate.toLocaleDateString("vi-VN").replace(/\//g, "");
-  const timeId = currentDate
-    .toLocaleTimeString("vi-VN", { hour12: false })
-    .replace(/:/g, "");
-
-  const orderId = `${dateId}${timeId}`;
-
-  return orderId;
-};
+const generateOrderId = require("../utils/generateOrderId");
 
 const createTransaction = async (orderData, userId) => {
   const session = await mongoose.startSession();
@@ -210,9 +197,6 @@ exports.createOrder = async (req, res) => {
 
     const order = await createTransaction(orderData, userId);
 
-    const formattedOrderData = formatOrderDataForEmail(order);
-    await mailService.sendEmailCreateOrder(formattedOrderData);
-
     if (order) {
       let paymentUrl = "";
       if (req.body.paymentMethod === constants.ORDER.PAYMENT_METHOD.VNPAY) {
@@ -249,74 +233,93 @@ exports.createOrder = async (req, res) => {
       });
     }
   } catch (err) {
-    res.status(500).json({ status: false, msg: err.message });
+    console.error(err.message);
+    try {
+      const errorData = JSON.parse(err.message);
+      return res.status(errorData.statusCode).json({
+        status: false,
+        msg: errorData.message,
+        errors: errorData.errors,
+      });
+    } catch (parseError) {
+      return res.status(500).json({
+        status: false,
+        msg: err.message || "Internal server error",
+      });
+    }
   }
 };
 
 exports.getAllOrder = async (req, res) => {
+  const {
+    orderId,
+    customer,
+    product,
+    paymentMethod,
+    orderStatus,
+    page = 1,
+    limit = 10,
+  } = req.query;
+
   try {
-    const orders = await Orders.find().populate("userId");
+    const skip = (page - 1) * limit;
+    const query = {};
+
+    if (orderId) query.orderId = { $regex: orderId, $options: "i" };
+    if (paymentMethod && paymentMethod !== "all")
+      query.paymentMethod = paymentMethod;
+    if (orderStatus && orderStatus !== "all") query.orderStatus = orderStatus;
+
+    if (customer) {
+      query["shippingAddress.fullName"] = { $regex: customer, $options: "i" };
+    }
+
+    if (product) {
+      query["items"] = {
+        $elemMatch: {
+          productName: { $regex: product, $options: "i" },
+        },
+      };
+    }
+
+    const [orders, total] = await Promise.all([
+      Orders.find(query)
+        .sort({ createdAt: -1 })
+        .populate("userId", "-_id avatar")
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Orders.countDocuments(query),
+    ]);
+
     res.status(200).json({
       status: true,
       msg: "Orders Fetched Successfully!",
-      data: orders,
-    });
-  } catch (err) {
-    console.log(err.message);
-    res.status(500).json({ status: false, msg: err.message });
-  }
-};
-
-exports.getOrdersOfUserByUserId = async (req, res) => {
-  const userId = req.user?.userId;
-  try {
-    // Get pagination parameters from query
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 5;
-    const skip = (page - 1) * limit;
-
-    // Build query object
-    const query = { userId: userId };
-
-    // Get total count for pagination
-    const total = await Orders.countDocuments(query);
-
-    // Get orders with pagination and sorting
-    const orders = await Orders.find(query)
-      .sort({ orderDate: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean()
-      .select("-__v");
-
-    // Calculate pagination info
-    const totalPages = Math.ceil(total / limit);
-    const hasNext = page < totalPages;
-    const hasPrev = page > 1;
-
-    res.status(200).json({
-      status: true,
       data: {
         orders,
         pagination: {
           total,
-          page,
-          totalPages,
-          hasNext,
-          hasPrev,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(total / limit),
         },
       },
     });
   } catch (err) {
-    console.log(err.message);
-    res.status(500).json({ status: false, msg: err.message });
+    res.status(500).json({
+      status: false,
+      msg: "Error fetching orders",
+      error: err.message,
+    });
   }
 };
 
 exports.getOrderById = async (req, res) => {
   const { id } = req.params;
   try {
-    const order = await Orders.findById(id);
+    const order = await Orders.findById(id).populate({
+      path: "userId",
+      select: "avatar -_id",
+    });
     if (!order) {
       return res.status(404).json({ staus: false, msg: "Order Not Found" });
     }
@@ -329,18 +332,112 @@ exports.getOrderById = async (req, res) => {
 
 exports.updateOrderById = async (req, res) => {
   const { id } = req.params;
+  const { orderStatus, reason, description } = req.body;
 
   try {
-    const order = await Orders.findByIdAndUpdate(
-      id,
-      { orderStatus: req.body.orderStatus },
-      { new: true }
-    );
+    const order = await Orders.findById(id);
+    if (!order) {
+      return res.status(404).json({
+        status: false,
+        msg: "Order Not Found",
+      });
+    }
+
+    // Update order
+    let updateData = {
+      orderStatus,
+    };
+
+    if (reason || description) {
+      updateData.cancelOrder = {
+        reason,
+        description,
+      };
+    }
+
+    if ([constants.ORDER.STATUS.CANCELLED].includes(orderStatus)) {
+      updateData.paymentStatus = constants.ORDER.PAYMENT_STATUS.CANCELLED;
+    }
+    if (
+      [constants.ORDER.STATUS.CANCELLED].includes(orderStatus) &&
+      [constants.ORDER.CANCEL_ORDER.UNCONFIRMED].includes(reason)
+    ) {
+      updateData.paymentStatus = constants.ORDER.PAYMENT_STATUS.CANCELLED;
+      updateData.cancelOrder.reason = constants.ORDER.CANCEL_ORDER.UNCONFIRMED;
+    }
+    if (
+      [constants.ORDER.STATUS.CANCELLED].includes(orderStatus) &&
+      [constants.ORDER.CANCEL_ORDER.BUYER_DECLIEND].includes(reason)
+    ) {
+      updateData.paymentStatus = constants.ORDER.PAYMENT_STATUS.CANCELLED;
+      updateData.cancelOrder.reason =
+        constants.ORDER.CANCEL_ORDER.BUYER_DECLIEND;
+    }
+
+    const updatedOrder = await Orders.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+
+    res.status(200).json({
+      status: true,
+      msg: "Order Updated Successfully",
+      data: updatedOrder,
+    });
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).json({ status: false, msg: err.message });
+  }
+};
+
+exports.cancelOrder = async (req, res) => {
+  const { id } = req.params;
+  const { reason, description } = req.body;
+
+  try {
+    const order = await Orders.findById(id);
 
     if (!order) {
-      return res.status(404).json({ status: false, msg: "Order Not Found" });
+      return res.status(404).json({
+        status: false,
+        msg: "Order Not Found",
+      });
     }
-    res.status(200).json({ status: true, msg: "Order Updated Succesfully" });
+
+    let updateData = {
+      cancelOrder: {
+        reason,
+        description,
+      },
+    };
+
+    // Nếu order đang ở trạng thái PENDING -> update status ngay
+    if (order.orderStatus === constants.ORDER.STATUS.PENDING) {
+      updateData.orderStatus = constants.ORDER.STATUS.CANCELLED;
+      updateData.paymentStatus = constants.ORDER.PAYMENT_STATUS.CANCELLED;
+      updateData.cancelOrder.reason = reason;
+    }
+
+    // Nếu order đang PREPARING -> chỉ lưu thông tin cancel request
+    // Admin sẽ xem xét và quyết định có cancel hay không sau
+    const updatedOrder = await Orders.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+
+    if (updatedOrder.orderStatus === "preparing" && updatedOrder.cancelOrder) {
+      updatedOrder.orderStatus = constants.ORDER.STATUS.CANCELLATION_PENDING;
+      updatedOrder.save();
+    }
+
+    const message =
+      order.orderStatus === constants.ORDER.STATUS.PENDING
+        ? "Order Cancelled Successfully"
+        : "Cancellation request submitted successfully. Waiting for admin approval";
+
+    res.status(200).json({
+      status: true,
+      msg: message,
+      data: updatedOrder,
+    });
   } catch (err) {
     console.log(err.message);
     res.status(500).json({ status: false, msg: err.message });
